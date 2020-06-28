@@ -23,3 +23,8 @@ To list installed packages, use ```pip list```
 
 # Install TensorFlow
 In a virtualenv, do ```pip install --upgrade tensorflow```
+
+# Install TensorFlow Hub and TensorFlow Datasets
+To install TensorFlow Hub, use ```pip install -q tensorflow-hub```
+
+To install TensorFlow Datasets, use ```pip install -q tfds-nightly```
