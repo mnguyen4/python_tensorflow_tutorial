@@ -25,6 +25,11 @@ To list installed packages, use ```pip list```
 In a virtualenv, do ```pip install --upgrade tensorflow```
 
 # Install TensorFlow Hub and TensorFlow Datasets
-To install TensorFlow Hub, use ```pip install -q tensorflow-hub```
+To install TensorFlow Hub, use ```pip install  tensorflow-hub```
 
-To install TensorFlow Datasets, use ```pip install -q tfds-nightly```
+To install TensorFlow Datasets, use ```pip install -tfds-nightly```
+
+# Install seaborn and tensorflow_docs
+To install seaborn, use ```pip install seaborn```
+
+To install tensorflow_docs, use ```pip install git+https://github.com/tensorflow/docs```
