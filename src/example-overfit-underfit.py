@@ -93,6 +93,8 @@ def compile_and_fit(model, name, optimizer=None, max_epochs=10000):
     )
     return history
 
+print("=============== Tiny Model ===============")
+
 tiny_model = tf.keras.Sequential([
     layers.Dense(16, activation='elu', input_shape=(FEATURES,)),
     layers.Dense(1)
@@ -106,12 +108,16 @@ plotter.plot(size_histories)
 plt.ylim([0.5, 0.7])
 plt.show()
 
+print("=============== Small Model ===============")
+
 small_model = tf.keras.Sequential([
     layers.Dense(16, activation='elu', input_shape=(FEATURES, )),
     layers.Dense(16, activation='elu'),
     layers.Dense(1)
 ])
 size_histories['Small'] = compile_and_fit(small_model, 'sizes/Small')
+
+print("=============== Medium Model ===============")
 
 medium_model = tf.keras.Sequential([
     layers.Dense(64, activation='elu', input_shape=(FEATURES,)),
@@ -120,6 +126,8 @@ medium_model = tf.keras.Sequential([
     layers.Dense(1)
 ])
 size_histories['Medium'] = compile_and_fit(medium_model, 'sizes/Medium')
+
+print("=============== Large Model ===============")
 
 large_model = tf.keras.Sequential([
     layers.Dense(512, activation='elu', input_shape=(FEATURES,)),
@@ -135,4 +143,47 @@ a = plt.xscale('log')
 plt.xlim([5, max(plt.xlim())])
 plt.ylim([0.5, 0.7])
 plt.xlabel("Epochs [Log Scale]")
+plt.show()
+
+shutil.rmtree(logdir/'regularizers/Tiny', ignore_errors=True)
+shutil.copytree(logdir/'sizes/Tiny', logdir/'regularizers/Tiny')
+regularizer_histories = {}
+regularizer_histories['Tiny'] = size_histories['Tiny']
+
+print("=============== L2 Model ===============")
+
+l2_model = tf.keras.Sequential([
+    layers.Dense(512, activation='elu', kernel_regularizer=regularizers.l2(0.001), input_shape=(FEATURES,)),
+    layers.Dense(512, activation='elu', kernel_regularizer=regularizers.l2(0.001)),
+    layers.Dense(512, activation='elu', kernel_regularizer=regularizers.l2(0.001)),
+    layers.Dense(512, activation='elu', kernel_regularizer=regularizers.l2(0.001)),
+    layers.Dense(1)
+])
+regularizer_histories['l2'] = compile_and_fit(l2_model, "regularizers/l2")
+
+plotter.plot(regularizer_histories)
+plt.ylim([0.5, 0.7])
+plt.show()
+
+result = l2_model(features)
+regularization_losss = tf.add_n(l2_model.losses)
+print(regularization_losss)
+
+print("=============== Dropout Model ===============")
+
+dropout_model = tf.keras.Sequential([
+    layers.Dense(512, activation='elu', input_shape=(FEATURES,)),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(1)
+])
+
+regularizer_histories['dropout'] = compile_and_fit(dropout_model, 'regularizers/dropout')
+plotter.plot(regularizer_histories)
+plt.ylim([0.5, 0.7])
 plt.show()
