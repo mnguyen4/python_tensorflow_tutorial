@@ -187,3 +187,22 @@ regularizer_histories['dropout'] = compile_and_fit(dropout_model, 'regularizers/
 plotter.plot(regularizer_histories)
 plt.ylim([0.5, 0.7])
 plt.show()
+
+print("=============== L2 + Dropout Model ===============")
+
+combined_model = tf.keras.Sequential([
+    layers.Dense(512, kernel_regularizer=regularizers.l2(0.0001), activation='elu', input_shape=(FEATURES, )),
+    layers.Dropout(0.5),
+    layers.Dense(512, kernel_regularizer=regularizers.l2(0.0001), activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, kernel_regularizer=regularizers.l2(0.0001), activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, kernel_regularizer=regularizers.l2(0.0001), activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(1)
+])
+
+regularizer_histories['combined'] = compile_and_fit(combined_model, 'regularizers/combined')
+plotter.plot(regularizer_histories)
+plt.ylim([0.5, 0.7])
+plt.show()
