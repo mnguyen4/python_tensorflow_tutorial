@@ -33,3 +33,6 @@ To install TensorFlow Datasets, use ```pip install -tfds-nightly```
 To install seaborn, use ```pip install seaborn```
 
 To install tensorflow_docs, use ```pip install git+https://github.com/tensorflow/docs```
+
+# Install pyyaml and h5py
+To install pyyaml and h5py, use ```pip install pyyaml h5py```
