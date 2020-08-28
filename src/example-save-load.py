@@ -73,3 +73,28 @@ model.load_weights('./checkpoints/my_checkpoint')
 
 loss, acc = model.evaluate(test_images, test_labels, verbose=2)
 print("Restored model, accuracy: {:5.2f}%".format(100*acc))
+
+print("================= Save Entire Model =================")
+
+model = create_model()
+model.fit(train_images, train_labels, epochs=5)
+model.save('saved_model/my_model')
+
+new_model = tf.keras.models.load_model('saved_model/my_model')
+new_model.summary()
+
+loss, acc = new_model.evaluate(test_images, test_labels, verbose=2)
+print("Restored model, accuracy: {:5.2f}%".format(100*acc))
+print(new_model.predict(test_images).shape)
+
+print("================= HDF5 Format =================")
+
+model = create_model()
+model.fit(train_images, train_labels, epochs=5)
+model.save('saved_model/my_model.h5')
+
+new_model = tf.keras.models.load_model('saved_model/my_model.h5')
+new_model.summary()
+
+loss, acc = new_model.evaluate(test_images, test_labels, verbose=2)
+print("Restored model, accuracy: {:5.2f}%".format(100*acc))
