@@ -36,3 +36,6 @@ To install tensorflow_docs, use ```pip install git+https://github.com/tensorflow
 
 # Install pyyaml and h5py
 To install pyyaml and h5py, use ```pip install pyyaml h5py```
+
+# Install keras-tuner
+To install keras-tuner, user ```pip install keras-tuner```
