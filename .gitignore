@@ -131,3 +131,4 @@ dmypy.json
 checkpoints/
 training_*/
 saved_model/
+my_dir/
