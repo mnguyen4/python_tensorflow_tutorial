@@ -156,3 +156,27 @@ for i in range(9):
     plt.title(class_names[label])
     plt.axis("off")
 plt.show()
+
+# more training using dataset
+model.fit(train_ds, validation_data=val_ds, epochs=3)
+
+# using tensorflow datasets
+(train_ds, val_ds, test_ds), metadata = tfds.load(
+    'tf_flowers',
+    split=['train[:80%]', 'train[80%:90%]', 'train[90%:]'],
+    with_info=True,
+    as_supervised=True
+)
+
+num_classes = metadata.features['label'].num_classes
+print(num_classes)
+
+get_label_name = metadata.features['label'].int2str
+image, label = next(iter(train_ds))
+_ = plt.imshow(image)
+_ = plt.title(get_label_name(label))
+plt.show()
+
+train_ds = configure_for_performance(train_ds)
+val_ds = configure_for_performance(val_ds)
+test_ds = configure_for_performance(test_ds)
