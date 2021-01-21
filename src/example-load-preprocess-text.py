@@ -155,3 +155,92 @@ binary_loss, binary_accuracy = binary_model.evaluate(binary_test_ds)
 int_loss, int_accuracy = int_model.evaluate(int_test_ds)
 print("Binary model accuracy: {:2.2%}".format(binary_accuracy))
 print("Int model accuracy: {:2.2%}".format(int_accuracy))
+
+# export model
+export_model = tf.keras.Sequential([
+    binary_vectorize_layer, binary_model, layers.Activation("sigmoid")
+])
+
+export_model.compile(
+    loss=losses.SparseCategoricalCrossentropy(from_logits=False),
+    optimizer="adam",
+    metrics=["accuracy"]
+)
+
+# test exported model
+loss, accuracy = export_model.evaluate(raw_test_ds)
+print("Accuracy: {:2.2%}".format(accuracy))
+
+# prediction
+def get_string_labels(predicted_scores_batch):
+    predicted_int_labels = tf.argmax(predicted_scores_batch, axis=1)
+    predicted_labels = tf.gather(raw_train_ds.class_names, predicted_int_labels)
+    return predicted_labels
+
+# run inference
+inputs = [
+    "how do I extract keys from a dict into a list?", # python
+    "debug public static void main(string[] args) {...}", # java
+]
+predicted_scores = export_model.predict(inputs)
+predicted_labels = get_string_labels(predicted_scores)
+for input, label in zip(inputs, predicted_labels):
+    print("Question: ", input)
+    print("Predicted Label: ", label.numpy())
+
+print("============================ Predict author of Illiad translactions ============================")
+DIRECTORY_URL = "https://storage.googleapis.com/download.tensorflow.org/data/illiad/"
+FILE_NAMES = ["cowper.txt", "derby.txt", "butler.txt"]
+
+for name in FILE_NAMES:
+    text_dir = utils.get_file(name, origin=DIRECTORY_URL + name)
+
+parent_dir = pathlib.Path(text_dir).parent
+print(list(parent_dir.iterdir()))
+
+# load dataset
+def labeler(example, index):
+    return example, tf.cast(index, tf.int64)
+
+labeled_data_sets = []
+for i, file_name in enumerate(FILE_NAMES):
+    lines_ds = tf.data.TextLineDataset(str(parent_dir/file_name))
+    labeled_ds = lines_ds.map(lambda ex: labeler(ex, i))
+    labeled_data_sets.append(labeled_ds)
+
+BUFFER_SIZE = 50000
+BATCH_SIZE = 64
+VALIDATION_SIZE = 5000
+
+all_labeled_data = labeled_data_sets[0]
+for labeled_ds in labeled_data_sets[1:]:
+    all_labeled_data = all_labeled_data.concatenate(labeled_ds)
+
+all_labeled_data = all_labeled_data.shuffle(BUFFER_SIZE, reshuffle_each_iteration=False)
+for text, label in all_labeled_data.take(10):
+    print("Sentence: ", text.numpy())
+    print("Label: ", label.numpy())
+
+# prep for training
+tokenizer = tf_text.UnicodeScriptTokenizer()
+
+def tokenize(text, unused_label):
+    lower_case = tf_text.case_fold_utf8(text)
+    return tokenizer.tokenize(lower_case)
+
+tokenized_ds = all_labeled_data.map(tokenize)
+for text_batch in tokenized_ds.take(5):
+    print("Tokens: ", text_batch.numpy())
+
+tokenized_ds = configure_dataset(tokenized_ds)
+vocab_dict = collections.defaultdict(lambda: 0)
+for toks in tokenized_ds.as_numpy_iterator():
+    for tok in toks:
+        vocab_dict[tok] += 1
+
+vocab = sorted(vocab_dict.items(), key=lambda x: x[1], reverse=True)
+vocab = [token for token, count in vocab]
+vocab = vocab[:VOCAB_SIZE]
+vocab_size = len(vocab)
+print("Vocab size: ", vocab_size)
+print("First five vocab entries: ", vocab[:5])
