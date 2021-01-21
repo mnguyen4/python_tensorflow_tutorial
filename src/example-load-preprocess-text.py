@@ -125,3 +125,33 @@ binary_model.compile(
 history = binary_model.fit(
     binary_train_ds, validation_data=binary_val_ds, epochs=10
 )
+
+# build 1D ConvNet
+def create_model(vocab_size, num_labels):
+    model = tf.keras.Sequential([
+        layers.Embedding(vocab_size, 64, mask_zero=True),
+        layers.Conv1D(64, 5, padding="valid", activation="relu", strides=2),
+        layers.GlobalMaxPool1D(),
+        layers.Dense(num_labels)
+    ])
+    return model
+
+# VOCAB_SIZE 0 is used for padding so need to + 1
+int_model = create_model(vocab_size=VOCAB_SIZE+1, num_labels=4)
+int_model.compile(
+    loss=losses.SparseCategoricalCrossentropy(from_logits=True),
+    optimizer="adam",
+    metrics=["accuracy"]
+)
+history = int_model.fit(int_train_ds, validation_data=int_val_ds, epochs=5)
+
+print("Linear model on binary vectorized data:")
+print(binary_model.summary())
+print("ConvNet model on int vectorized data:")
+print(int_model.summary())
+
+# evaluate models
+binary_loss, binary_accuracy = binary_model.evaluate(binary_test_ds)
+int_loss, int_accuracy = int_model.evaluate(int_test_ds)
+print("Binary model accuracy: {:2.2%}".format(binary_accuracy))
+print("Int model accuracy: {:2.2%}".format(int_accuracy))
