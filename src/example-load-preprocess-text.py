@@ -244,3 +244,90 @@ vocab = vocab[:VOCAB_SIZE]
 vocab_size = len(vocab)
 print("Vocab size: ", vocab_size)
 print("First five vocab entries: ", vocab[:5])
+
+# convert token to int
+keys = vocab
+values = range(2, len(vocab) + 2)
+init = tf.lookup.KeyValueTensorInitializer(keys, values, key_dtype=tf.string, value_dtype=tf.int64)
+num_oov_buckets = 1
+vocab_table = tf.lookup.StaticVocabularyTable(init, num_oov_buckets)
+
+def preprocess_text(text, label):
+    standardized = tf_text.case_fold_utf8(text)
+    tokenized = tokenizer.tokenize(standardized)
+    vectorized = vocab_table.lookup(tokenized)
+    return vectorized, label
+
+example_text, example_label = next(iter(all_labeled_data))
+print("Sentence: ", example_text.numpy())
+vectorized_text, example_label = preprocess_text(example_text, example_label)
+print("Vectorized sentence: ", vectorized_text.numpy())
+
+# preprocess dataset
+all_encoded_data = all_labeled_data.map(preprocess_text)
+
+# split dataset
+train_data = all_encoded_data.skip(VALIDATION_SIZE).shuffle(BUFFER_SIZE)
+validation_data = all_encoded_data.take(VALIDATION_SIZE)
+train_data = train_data.padded_batch(BATCH_SIZE)
+validation_data = validation_data.padded_batch(BATCH_SIZE)
+
+sample_text, sample_label = next(iter(validation_data))
+print("Text batch shape: ", sample_text.shape)
+print("Label batch shape: ", sample_label.shape)
+print("First text example: ", sample_text[0])
+print("First label example: ", sample_label[0])
+
+vocab_size += 2
+train_data = configure_dataset(train_data)
+valiation_data = configure_dataset(validation_data)
+
+# training time
+model = create_model(vocab_size=vocab_size, num_labels=3)
+model.compile(
+    optimizer="adam",
+    loss=losses.SparseCategoricalCrossentropy(from_logits=True),
+    metrics=["accuracy"]
+)
+history = model.fit(train_data, validation_data=valiation_data, epochs=3)
+
+loss, accuracy = model.evaluate(validation_data)
+print("Loss: ", loss)
+print("Accuracy: {:2.2%}".format(accuracy))
+
+# export model
+preprocess_layer = TextVectorization(
+    max_tokens=vocab_size,
+    standardize=tf_text.case_fold_utf8,
+    split=tokenizer.tokenize,
+    output_mode="int",
+    output_sequence_length=MAX_SEQUENCE_LENGTH
+)
+preprocess_layer.set_vocabulary(vocab)
+export_model = tf.keras.Sequential([
+    preprocess_layer, model, layers.Activation("sigmoid")
+])
+export_model.compile(
+    loss=losses.SparseCategoricalCrossentropy(from_logits=False),
+    optimizer="adam",
+    metrics=["accuracy"]
+)
+
+# create test dataset
+test_ds = all_labeled_data.take(VALIDATION_SIZE).batch(BATCH_SIZE)
+test_ds = configure_dataset(test_ds)
+loss, accuracy = export_model.evaluate(test_ds)
+print("Loss: ", loss)
+print("Accuracy: {:2.2%}".format(accuracy))
+
+# run inference
+inputs = [
+    "Join'd to th' Ionians with their flowing robes,", # label 1
+    "the allies, and his armour flashed about him so that he seemed to all", # label 2
+    "And with loud clangor of his arms he fell." # label 0
+]
+predicted_scores = export_model.predict(inputs)
+predicted_labels = tf.argmax(predicted_scores, axis=1)
+for input, label in zip(inputs, predicted_labels):
+    print("Question: ", input)
+    print("Predicted label: ", label.numpy())
